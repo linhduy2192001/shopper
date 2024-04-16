@@ -1,33 +1,49 @@
 import Paginate from "@/components/Paginate";
 import ProductCard, { ProductCardLoading } from "@/components/ProductCard";
+import Radio from "@/components/Radio";
 import Skeleton from "@/components/Skeleton";
 import { PATH } from "@/config";
-import { useFetch } from "@/hooks/useFetch";
+import { useCategory } from "@/hooks/useCategories";
+import { useDidUpdateEffect } from "@/hooks/useDidUpdateEffect";
 import { useQuery } from "@/hooks/useQuery";
+import { useSearch } from "@/hooks/useSearch";
 import { productService } from "@/services/product.service";
 import { cn, slugify } from "@/utils";
-import {
-  Link,
-  generatePath,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
+import { set } from "lodash";
 import queryString from "query-string";
-import { useCategories, useCategory } from "@/hooks/useCategories";
+import { useEffect, useRef, useState } from "react";
+import { Link, generatePath, useParams } from "react-router-dom";
 
 export default function ProductPage() {
   const { id } = useParams();
-  const [search] = useSearchParams();
-  const currentPage = parseInt(search.get("page") || 1);
-  const searchProduct = search.get("search");
+  // const [search, setSearch] = useSearchParams();
+
+  const [search, setSearch] = useSearch({
+    page: 1,
+    sort: "newest",
+  });
+
+  useDidUpdateEffect(() => {
+    setMaxPrice("");
+    setMinPrice("");
+  }, [id]);
+
+  const [minPrice, setMinPrice] = useState(search.minPrice);
+  const [maxPrice, setMaxPrice] = useState(search.maxPrice);
+  // const currentPage = parseInt(search.get("page") || 1);
+  const searchProduct = search.search;
   const category = useCategory(parseInt(id));
 
   const qs = queryString.stringify({
-    page: currentPage,
+    page: search.page,
     fields:
       "name,rating_average,review_count,real_price,price,categories,slug,images,id,discount_rate",
     categories: id,
     name: searchProduct,
+    sort: search.sort,
+    minPrice: search.minPrice,
+    maxPrice: search.maxPrice,
+    filterRating: search.filterRating,
   });
 
   // const { data, loading } = useFetch(
@@ -54,7 +70,7 @@ export default function ProductPage() {
         <div className="row">
           <div className="col-12 col-md-4 col-lg-3">
             {/* Filters */}
-            <form className="mb-10 mb-md-0">
+            <div className="mb-10 mb-md-0">
               <ul className="nav nav-vertical" id="filterNav">
                 <li className="nav-item">
                   {/* Toggle */}
@@ -127,21 +143,20 @@ export default function ProductPage() {
                     Rating
                   </a>
                   {/* Collapse */}
-                  <div>
-                    <div
-                      className="mb-6 form-group form-group-overflow"
-                      id="seasonGroup"
-                    >
-                      <div className="mb-3 custom-control custom-radio">
-                        <input
-                          className="custom-control-input"
-                          type="radio"
-                          defaultChecked
-                        />
-                        <label
-                          className="flex items-center custom-control-label"
-                          htmlFor="seasonOne"
-                        >
+                  <Radio.Group
+                    defaultValue={search.filterRating}
+                    onChange={(value) => {
+                      setSearch({
+                        filterRating: value,
+                      });
+                    }}
+                  >
+                    <div>
+                      <div
+                        className="mb-6 form-group form-group-overflow"
+                        id="seasonGroup"
+                      >
+                        <Radio value="5">
                           <svg
                             stroke="currentColor"
                             fill="currentColor"
@@ -215,18 +230,9 @@ export default function ProductPage() {
                           <span className="inline-block ml-2 text-small">
                             from 5 star
                           </span>
-                        </label>
-                      </div>
-                      <div className="mb-3 custom-control custom-radio">
-                        <input
-                          className="custom-control-input"
-                          id="seasonTwo"
-                          type="radio"
-                        />
-                        <label
-                          className="flex items-center custom-control-label"
-                          htmlFor="seasonOne"
-                        >
+                        </Radio>
+                        <Radio value="4">
+                          {" "}
                           <svg
                             stroke="currentColor"
                             fill="currentColor"
@@ -307,18 +313,8 @@ export default function ProductPage() {
                           <span className="inline-block ml-2 text-small">
                             from 4 star
                           </span>
-                        </label>
-                      </div>
-                      <div className="custom-control custom-radio">
-                        <input
-                          className="custom-control-input"
-                          id="seasonThree"
-                          type="radio"
-                        />
-                        <label
-                          className="flex items-center custom-control-label"
-                          htmlFor="seasonOne"
-                        >
+                        </Radio>
+                        <Radio value="3">
                           <svg
                             stroke="currentColor"
                             fill="currentColor"
@@ -406,10 +402,10 @@ export default function ProductPage() {
                           <span className="inline-block ml-2 text-small">
                             from 3 star
                           </span>
-                        </label>
+                        </Radio>
                       </div>
                     </div>
-                  </div>
+                  </Radio.Group>
                 </li>
                 <li className="nav-item">
                   {/* Toggle */}
@@ -426,6 +422,10 @@ export default function ProductPage() {
                     <div className="d-flex align-items-center">
                       {/* Input */}
                       <input
+                        value={minPrice}
+                        onChange={(ev) => {
+                          setMinPrice(ev.target.value);
+                        }}
                         type="number"
                         className="form-control form-control-xs"
                         placeholder="$10.00"
@@ -435,19 +435,31 @@ export default function ProductPage() {
                       <div className="mx-2 text-gray-350">‒</div>
                       {/* Input */}
                       <input
+                        value={maxPrice}
+                        onChange={(ev) => {
+                          setMaxPrice(ev.target.value);
+                        }}
                         type="number"
                         className="form-control form-control-xs"
                         placeholder="$350.00"
                         max={350}
                       />
                     </div>
-                    <button className="mt-5 btn btn-outline-dark btn-block">
+                    <button
+                      onClick={() =>
+                        setSearch({
+                          minPrice: minPrice,
+                          maxPrice: maxPrice,
+                        })
+                      }
+                      className="mt-5 btn btn-outline-dark btn-block"
+                    >
                       Apply
                     </button>
                   </div>
                 </li>
               </ul>
-            </form>
+            </div>
           </div>
           <div className="col-12 col-md-8 col-lg-9">
             {/* Slider */}
@@ -555,13 +567,24 @@ export default function ProductPage() {
               <div className="flex items-center gap-1 col-12 col-md-auto whitespace-nowrap">
                 {/* Select */}
                 Sắp xếp theo:
-                <select className="custom-select custom-select-xs">
-                  <option>Mới nhất</option>
-                  <option>Giá giảm dần</option>
-                  <option>Giá tăng dần</option>
-                  <option>Giảm giá nhiều nhất</option>
-                  <option>Đánh giá cao nhất</option>
-                  <option>Mua nhiều nhất</option>
+                <select
+                  value={search.sort}
+                  onChange={(ev) => {
+                    setSearch({
+                      sort: ev.target.value,
+                      page: 1,
+                    });
+                  }}
+                  className="custom-select custom-select-xs"
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="real_price.desc">Giá giảm dần</option>
+                  <option value="real_price.asc">Giá tăng dần</option>
+                  <option value="discount_rate.desc">
+                    Giảm giá nhiều nhất
+                  </option>
+                  <option value="rating_average.desc">Đánh giá cao nhất</option>
+                  <option value="top_sell">Mua nhiều nhất</option>
                 </select>
               </div>
             </div>
