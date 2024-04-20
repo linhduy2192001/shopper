@@ -1,5 +1,5 @@
 import { http } from "@/utils";
-import { PRODUCT_API } from "@/config/api";
+import { PRODUCT_API } from "@/config";
 
 export const productService = {
   getProduct(query = "", signal) {

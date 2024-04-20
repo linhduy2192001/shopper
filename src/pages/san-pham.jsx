@@ -9,9 +9,8 @@ import { useQuery } from "@/hooks/useQuery";
 import { useSearch } from "@/hooks/useSearch";
 import { productService } from "@/services/product.service";
 import { cn, slugify } from "@/utils";
-import { set } from "lodash";
 import queryString from "query-string";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link, generatePath, useParams } from "react-router-dom";
 
 export default function ProductPage() {
@@ -599,7 +598,7 @@ export default function ProductPage() {
                 ? Array.from(Array(15)).map((e, i) => (
                     <ProductCardLoading key={i} />
                   ))
-                : data?.data.map((e) => <ProductCard key={e.id} {...e} />)}
+                : data?.data?.map((e) => <ProductCard key={e.id} {...e} />)}
             </div>
             {/* Pagination */}
             <Paginate totalPage={data?.paginate?.totalPage} />

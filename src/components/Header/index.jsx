@@ -166,10 +166,10 @@ export default function Header() {
       <nav className="bg-white navbar navbar-expand-lg navbar-light">
         <div className="container">
           {/* Brand */}
-          <a className="navbar-brand" href="./index.html">
+          <Link className="navbar-brand" to={PATH.Home}>
             <img style={{ width: "50px" }} src="/img/logo.svg" />
             Shopper.
-          </a>
+          </Link>
           {/* Toggler */}
           <button
             className="navbar-toggler"
