@@ -109,7 +109,7 @@ export default function ProductPage() {
                                 Tất cả sản phẩm
                               </Link>
                             </li>
-                            {categories.data.map((e) => (
+                            {categories?.data?.map((e) => (
                               <li
                                 key={e.id}
                                 className={cn("list-styled-item", {
