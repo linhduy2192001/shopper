@@ -25,12 +25,17 @@ export default function Radio({ children, ...props }) {
   );
 }
 
-Radio.Group = ({ children, defaultValue, ...props }) => {
+Radio.Group = ({ children, defaultValue, toggle, ...props }) => {
   const [value, setValue] = useState(defaultValue);
 
-  const onChange = (value) => {
-    setValue(value);
-    props?.onChange?.(value);
+  const onChange = (_value) => {
+    if (toggle && _value == value) {
+      setValue();
+      props?.onChange?.();
+      return;
+    }
+    setValue(_value);
+    props?.onChange?.(_value);
   };
   return (
     <Context.Provider value={{ value, onChange }}>{children}</Context.Provider>

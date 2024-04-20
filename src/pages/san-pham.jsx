@@ -144,6 +144,7 @@ export default function ProductPage() {
                   </a>
                   {/* Collapse */}
                   <Radio.Group
+                    toggle
                     defaultValue={search.filterRating}
                     onChange={(value) => {
                       setSearch({

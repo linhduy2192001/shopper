@@ -11,5 +11,5 @@ export const useCategories = () => {
 export const useCategory = (id) => {
   const categories = useCategories();
 
-  return categories?.data?.data.find((e) => e.id === id);
+  return categories?.data?.data?.find((e) => e.id === id);
 };

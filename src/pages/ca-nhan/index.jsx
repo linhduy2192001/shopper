@@ -1,11 +1,47 @@
+import Button from "@/components/Button";
+import Field from "@/components/Field";
+import { useAuth } from "@/hooks/useAuth";
+import { useForm } from "@/hooks/useForm";
+import { logoutAction, setUserAction } from "@/stories/auth";
 import React from "react";
+import { handleError, regexp, require } from "@/utils";
+import { useDispatch } from "react-redux";
+import { useQuery } from "@/hooks/useQuery";
+import { userService } from "@/services/user.services";
+import { message } from "antd";
+
+const rules = {
+  name: [require()],
+  phone: [require(), regexp("phone")],
+};
 
 export default function Profile() {
+  const dispatch = useDispatch();
+  const { user } = useAuth();
+  const userForm = useForm(rules, { initialValue: user });
+
+  const { loading, refetch: updateProfileService } = useQuery({
+    enabled: false,
+    queryFn: ({ params }) => userService.updateProfile(...params),
+  });
+
+  const onSubmit = async () => {
+    try {
+      if (userForm.validate()) {
+        const res = await updateProfileService(userForm.values);
+        dispatch(setUserAction(res.data));
+
+        message.success("Cập nhật thông tin tài khoản thành công!");
+      }
+    } catch (err) {
+      handleError(err);
+    }
+  };
   return (
-    <section className="pt-7 pb-12">
+    <section className="pb-12 pt-7">
       <div className="container">
         <div className="row">
-          <div className="col-12 text-center">
+          <div className="text-center col-12">
             {/* Heading */}
             <h3 className="mb-10">Thông tin cá nhân</h3>
           </div>
@@ -46,6 +82,9 @@ export default function Profile() {
                   Sổ thanh toán
                 </a>
                 <a
+                  onClick={(ev) => {
+                    ev.preventDefault(), dispatch(logoutAction());
+                  }}
                   className="list-group-item list-group-item-action dropright-toggle"
                   href="#!"
                 >
@@ -70,45 +109,28 @@ export default function Profile() {
                 </div>
                 <div className="col-12">
                   {/* Email */}
-                  <div className="form-group">
-                    <label htmlFor="accountFirstName">Full Name *</label>
-                    <input
-                      className="form-control form-control-sm"
-                      id="accountFirstName"
-                      type="text"
-                      placeholder="Full Name *"
-                      defaultValue="Daniel"
-                      required
-                    />
-                  </div>
+                  <Field
+                    label="Full Name *"
+                    placeholder="Full Name *"
+                    {...userForm.register("name")}
+                  />
                 </div>
                 <div className="col-md-6">
                   {/* Email */}
-                  <div className="form-group">
-                    <label htmlFor="accountEmail">Phone Number *</label>
-                    <input
-                      className="form-control form-control-sm"
-                      id="accountEmail"
-                      type="email"
-                      placeholder="Phone Number *"
-                      required
-                    />
-                  </div>
+                  <Field
+                    label="Phone Number *"
+                    placeholder="Phone Number *"
+                    {...userForm.register("phone")}
+                  />
                 </div>
                 <div className="col-md-6">
                   {/* Email */}
-                  <div className="form-group">
-                    <label htmlFor="accountEmail">Email Address *</label>
-                    <input
-                      disabled
-                      className="form-control form-control-sm"
-                      id="accountEmail"
-                      type="email"
-                      placeholder="Email Address *"
-                      defaultValue="support@spacedev.com"
-                      required
-                    />
-                  </div>
+                  <Field
+                    label="Email Address *"
+                    placeholder="Email Address *"
+                    {...userForm.register("username")}
+                    disabled
+                  />
                 </div>
                 <div className="col-12 col-md-12">
                   {/* Password */}
@@ -160,7 +182,7 @@ export default function Profile() {
                 </div>
                 <div className="col-12 col-lg-6">
                   {/* Gender */}
-                  <div className="form-group mb-8">
+                  <div className="mb-8 form-group">
                     <label>Gender</label>
                     <div className="btn-group-toggle" data-toggle="buttons">
                       <label className="btn btn-sm btn-outline-border active">
@@ -174,9 +196,9 @@ export default function Profile() {
                 </div>
                 <div className="col-12">
                   {/* Button */}
-                  <button className="btn btn-dark" type="submit">
+                  <Button onClick={onSubmit} loading={loading}>
                     Save Changes
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>

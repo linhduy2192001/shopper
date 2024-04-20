@@ -2,11 +2,6 @@ import axios from "axios";
 import { getToken, setToken } from "./token";
 import { authService } from "../services/auth.service";
 
-export const COURSE_API = import.meta.env.VITE_COURSE_API;
-export const ORGANIZATION_API = import.meta.env.VITE_ORGANIZATION_API;
-export const USER_API = import.meta.env.VITE_USER_API;
-export const AUTH_API = import.meta.env.VITE_AUTHENTICATION_API;
-
 export const http = axios.create();
 http.interceptors.response.use(
   (res) => {

@@ -1,6 +1,96 @@
-import React from "react";
+import { useAuth } from "@/hooks/useAuth";
+import Button from "@/components/Button";
+import Field from "@/components/Field";
+import { useBodyClass } from "@/hooks/useBodyClass";
+import { useForm } from "@/hooks/useForm";
+import { useQuery } from "@/hooks/useQuery";
+import { userService } from "@/services/user.services";
+import { loginAction, loginByCodeAction } from "@/stories/auth";
+import {
+  confirm,
+  copyTopClipboard,
+  handleError,
+  regexp,
+  require,
+} from "@/utils";
+import { message } from "antd";
+import { useDispatch } from "react-redux";
+import { useSearch } from "@/hooks/useSearch";
+import { useEffect } from "react";
+import { authService } from "@/services/auth.service";
 
 export default function Account() {
+  useBodyClass("bg-light");
+  const [search] = useSearch();
+  const dispatch = useDispatch();
+  const { loginLoading } = useAuth();
+
+  const { loading, refetch: registerService } = useQuery({
+    queryFn: () =>
+      userService.register({
+        ...formRegister.values,
+        redirect: window.location.origin + window.location.pathname,
+      }),
+    enabled: false,
+    limitDuration: 1000,
+  });
+
+  useEffect(() => {
+    if (search.code) {
+      dispatch(loginByCodeAction(search.code));
+    }
+  }, []);
+
+  // const { loading: loginLoading, refetch: loginSerivce } = useQuery({
+  //   enabled: false,
+  //   queryFn: () => authService.login(formLogin.values),
+  //   limitDuration: 1000,
+  // });
+
+  const formLogin = useForm({
+    username: [require(), regexp()],
+    password: [require()],
+  });
+
+  const formRegister = useForm(
+    {
+      name: [require()],
+      password: [require()],
+      username: [require(), regexp()],
+      confirmPassword: [confirm("password")],
+    },
+    {
+      dependencies: {
+        password: ["confirmPassword"],
+      },
+    }
+  );
+  const onRegister = async () => {
+    if (formRegister.validate()) {
+      try {
+        const res = await registerService();
+        message.success(res.message);
+      } catch (error) {
+        handleError(error);
+      }
+    }
+  };
+
+  const onLogin = async () => {
+    if (formLogin.validate()) {
+      try {
+        await dispatch(loginAction(formLogin.values)).unwrap();
+        message.success("Login success");
+      } catch (error) {
+        handleError(error);
+      }
+    }
+  };
+
+  const _copyToClipboard = (ev) => {
+    copyTopClipboard(ev.target.innerText);
+    message.info("Copy to clipboard");
+  };
   return (
     <section className="py-12">
       <div className="container">
@@ -12,37 +102,22 @@ export default function Account() {
                 {/* Heading */}
                 <h6 className="mb-7">Returning Customer</h6>
                 {/* Form */}
-                <form>
+                <div>
                   <div className="row">
                     <div className="col-12">
                       {/* Email */}
-                      <div className="form-group">
-                        <label className="sr-only" htmlFor="loginEmail">
-                          Email Address *
-                        </label>
-                        <input
-                          className="form-control form-control-sm"
-                          id="loginEmail"
-                          type="email"
-                          placeholder="Email Address *"
-                          required
-                        />
-                      </div>
+                      <Field
+                        placeholder="Email Address *"
+                        {...formLogin.register("username")}
+                      />
                     </div>
                     <div className="col-12">
                       {/* Password */}
-                      <div className="form-group">
-                        <label className="sr-only" htmlFor="loginPassword">
-                          Password *
-                        </label>
-                        <input
-                          className="form-control form-control-sm"
-                          id="loginPassword"
-                          type="password"
-                          placeholder="Password *"
-                          required
-                        />
-                      </div>
+                      <Field
+                        placeholder="Password *"
+                        type="password"
+                        {...formLogin.register("password")}
+                      />
                     </div>
                     <div className="col-12 col-md">
                       {/* Remember */}
@@ -76,19 +151,29 @@ export default function Account() {
                     </div>
                     <div className="col-12">
                       {/* Button */}
-                      <a
-                        href="./account-personal-info.html"
-                        className="btn btn-sm btn-dark"
-                        type="submit"
-                      >
+                      <Button onClick={onLogin} loading={loginLoading}>
                         Sign In
-                      </a>
+                      </Button>
                     </div>
                     <div className="col-12">
                       <p className="mt-5 mb-2 font-light font-size-sm text-muted">
                         Tài khoản demo:{" "}
                         <b className="text-black">
-                          demo@spacedev.com / Spacedev@123
+                          <span
+                            className="underline cursor-pointer"
+                            onClick={_copyToClipboard}
+                          >
+                            demo@spacedev.com
+                          </span>{" "}
+                          /
+                          <span
+                            className="underline cursor-pointer"
+                            onClick={_copyToClipboard}
+                          >
+                            {" "}
+                            Spacedev@12
+                          </span>
+                          3
                         </b>
                       </p>
                       <p className="mt-5 mb-2 font-light text-justify font-size-sm text-muted">
@@ -107,7 +192,7 @@ export default function Account() {
                       </p>
                     </div>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
           </div>
@@ -118,70 +203,41 @@ export default function Account() {
                 {/* Heading */}
                 <h6 className="mb-7">New Customer</h6>
                 {/* Form */}
-                <form>
+                <div>
                   <div className="row">
                     <div className="col-12">
                       {/* Email */}
-                      <div className="form-group">
-                        <label className="sr-only" htmlFor="registerFirstName">
-                          Full Name *
-                        </label>
-                        <input
-                          className="form-control form-control-sm"
-                          id="registerFirstName"
-                          type="text"
-                          placeholder="Full Name *"
-                          required
-                        />
-                      </div>
+                      <Field
+                        {...formRegister.register("name")}
+                        placeholder="Full Name *"
+                        type="text"
+                      />
                     </div>
                     <div className="col-12">
                       {/* Email */}
-                      <div className="form-group">
-                        <label className="sr-only" htmlFor="registerEmail">
-                          Email Address *
-                        </label>
-                        <input
-                          className="form-control form-control-sm"
-                          id="registerEmail"
-                          type="email"
-                          placeholder="Email Address *"
-                          required
-                        />
-                      </div>
+                      <Field
+                        placeholder="Email Address *"
+                        type="email"
+                        {...formRegister.register("username")}
+                      />
                     </div>
                     <div className="col-12 col-md-6">
                       {/* Password */}
-                      <div className="form-group">
-                        <label className="sr-only" htmlFor="registerPassword">
-                          Password *
-                        </label>
-                        <input
-                          className="form-control form-control-sm"
-                          id="registerPassword"
-                          type="password"
-                          placeholder="Password *"
-                          required
-                        />
-                      </div>
+                      <Field
+                        label="Password *"
+                        placeholder="Password *"
+                        type="password"
+                        {...formRegister.register("password")}
+                      />
                     </div>
                     <div className="col-12 col-md-6">
                       {/* Password */}
-                      <div className="form-group">
-                        <label
-                          className="sr-only"
-                          htmlFor="registerPasswordConfirm"
-                        >
-                          Confirm Password *
-                        </label>
-                        <input
-                          className="form-control form-control-sm"
-                          id="registerPasswordConfirm"
-                          type="password"
-                          placeholder="Confirm Password *"
-                          required
-                        />
-                      </div>
+                      <Field
+                        label="Confirm Password *"
+                        placeholder="Confirm Password *"
+                        type="password"
+                        {...formRegister.register("confirmPassword")}
+                      />
                     </div>
                     <div className="col-12 col-md-auto">
                       {/* Link */}
@@ -192,16 +248,12 @@ export default function Account() {
                     </div>
                     <div className="col-12">
                       {/* Button */}
-                      <a
-                        href="./account-personal-info.html"
-                        className="btn btn-sm btn-dark"
-                        type="submit"
-                      >
+                      <Button loading={loading} onClick={onRegister}>
                         Register
-                      </a>
+                      </Button>
                     </div>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
           </div>

@@ -84,7 +84,7 @@ export default function SearchDrawer({ open, onClose }) {
               <option value={0} selected>
                 All Categories
               </option>
-              {categories?.data.map((e) => (
+              {categories?.data?.map((e) => (
                 <option value={e.id} key={e.id}>
                   {e.title}
                 </option>
