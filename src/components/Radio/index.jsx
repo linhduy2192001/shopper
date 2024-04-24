@@ -1,3 +1,4 @@
+import { cn } from "@/utils";
 import React, { createContext, useContext, useState } from "react";
 
 const Context = createContext({});
@@ -24,6 +25,22 @@ export default function Radio({ children, ...props }) {
     </div>
   );
 }
+
+Radio.Toggle = ({ children, ...props }) => {
+  const { value, onChange } = useContext(Context);
+
+  return (
+    <label
+      className={cn("btn btn-sm btn-outline-border ", {
+        active: props.value == value,
+      })}
+      onClick={() => onChange(props.value)}
+    >
+      <input type="radio" name="gender" checked={props.value == value} />{" "}
+      {children}
+    </label>
+  );
+};
 
 Radio.Group = ({ children, defaultValue, toggle, ...props }) => {
   const [value, setValue] = useState(defaultValue);

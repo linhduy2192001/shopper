@@ -21,6 +21,8 @@ import { object } from "@/utils/object";
 import { avatarDefault } from "@/config/asset";
 import { fileService } from "@/services/file.service";
 import { UploadFile } from "@/components/UploadFile";
+import dayjs from "dayjs";
+import Radio from "@/components/Radio";
 
 const rules = {
   name: [require()],
@@ -62,6 +64,7 @@ export default function Profile() {
   const dispatch = useDispatch();
   const { user } = useAuth();
   const userForm = useForm(rules, { initialValue: user });
+  console.log(userForm.values);
 
   const { loading, refetch: updateProfileService } = useQuery({
     enabled: false,
@@ -80,7 +83,8 @@ export default function Profile() {
       userForm.values,
       "name",
       "phone",
-      "birthday"
+      "birthday",
+      "gender"
     );
 
     let avatar;
@@ -263,23 +267,32 @@ export default function Profile() {
                     label="Date of Birth"
                     {...userForm.register("birthday")}
                     renderField={(props) => (
-                      <DatePicker className="form-control form-control-sm" />
+                      <DatePicker
+                        format="DD/MM/YYYY"
+                        value={props.value ? dayjs(props.value) : undefined}
+                        onChange={(ev, date) => props?.onChange?.(date)}
+                        className="form-control form-control-sm"
+                      />
                     )}
                   />
                 </div>
                 <div className="col-12 col-lg-6">
                   {/* Gender */}
-                  <div className="mb-8 form-group">
-                    <label>Gender</label>
-                    <div className="btn-group-toggle" data-toggle="buttons">
-                      <label className="btn btn-sm btn-outline-border active">
-                        <input type="radio" name="gender" defaultChecked /> Male
-                      </label>
-                      <label className="btn btn-sm btn-outline-border">
-                        <input type="radio" name="gender" /> Female
-                      </label>
-                    </div>
-                  </div>
+                  <Field
+                    {...userForm.register("gender")}
+                    label="Gender"
+                    renderField={(props) => (
+                      <div className="btn-group-toggle">
+                        <Radio.Group
+                          defaultValue={props.value}
+                          onChange={(value) => props?.onChange?.(value)}
+                        >
+                          <Radio.Toggle value="male">Male</Radio.Toggle>
+                          <Radio.Toggle value="female">Female</Radio.Toggle>
+                        </Radio.Group>
+                      </div>
+                    )}
+                  />
                 </div>
                 <div className="col-12">
                   {/* Button */}
