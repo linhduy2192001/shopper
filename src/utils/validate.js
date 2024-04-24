@@ -16,6 +16,13 @@ export const validate = (rules, forms) => {
 
   for (let name in rules) {
     for (let rule of rules[name]) {
+      if (typeof rule === " funtion") {
+        const err = rule(forms[name], forms);
+        if (err) {
+          errorObject[name] = err;
+          break;
+        }
+      }
       if (rule.required) {
         if (
           (typeof forms[name] === "boolean" && !forms[name]) ||

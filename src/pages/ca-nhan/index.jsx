@@ -3,19 +3,62 @@ import Field from "@/components/Field";
 import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "@/hooks/useForm";
 import { logoutAction, setUserAction } from "@/stories/auth";
-import React from "react";
-import { handleError, regexp, require } from "@/utils";
+import React, { useRef, useState } from "react";
+import {
+  confirm,
+  handleError,
+  minmax,
+  regexp,
+  require,
+  validate,
+} from "@/utils";
 import { useDispatch } from "react-redux";
 import { useQuery } from "@/hooks/useQuery";
 import { userService } from "@/services/user.services";
-import { message } from "antd";
+import { DatePicker, message } from "antd";
+import _ from "lodash";
+import { object } from "@/utils/object";
+import { avatarDefault } from "@/config/asset";
+import { fileService } from "@/services/file.service";
+import { UploadFile } from "@/components/UploadFile";
 
 const rules = {
   name: [require()],
   phone: [require(), regexp("phone")],
+  currentPassword: [
+    (_, forms) => {
+      if (forms.newPassword) {
+        const errorObj = validate(
+          {
+            currentPassword: [require(), minmax(6, 32)],
+          },
+          forms
+        );
+        return errorObj.currentPassword;
+      }
+    },
+  ],
+  newPassword: [
+    (value, forms) => {
+      if (forms.currentPassword) {
+        if (forms.currentPassword === value)
+          return "Vui lòng không điền giống mất khẩu cũ";
+        const errorObj = validate(
+          {
+            newPassword: [require(), minmax(6, 32)],
+          },
+          forms
+        );
+        return errorObj.newPassword;
+      }
+    },
+  ],
+  confirmPassword: [confirm("newPassword")],
 };
 
 export default function Profile() {
+  const fileRef = useRef();
+
   const dispatch = useDispatch();
   const { user } = useAuth();
   const userForm = useForm(rules, { initialValue: user });
@@ -25,18 +68,67 @@ export default function Profile() {
     queryFn: ({ params }) => userService.updateProfile(...params),
   });
 
-  const onSubmit = async () => {
-    try {
-      if (userForm.validate()) {
-        const res = await updateProfileService(userForm.values);
-        dispatch(setUserAction(res.data));
+  const { loading: changePasswordLoading, refetch: changePasswordService } =
+    useQuery({
+      enabled: false,
+      queryFn: ({ params }) => userService.changePassword(...params),
+    });
 
-        message.success("Cập nhật thông tin tài khoản thành công!");
+  const onSubmit = async () => {
+    const checkOldData = object.isEqual(
+      user,
+      userForm.values,
+      "name",
+      "phone",
+      "birthday"
+    );
+
+    let avatar;
+
+    if (fileRef.current) {
+      const res = await fileService.uploadFile(fileRef.current);
+      if (res.link) {
+        avatar = res.link;
       }
-    } catch (err) {
-      handleError(err);
+    }
+
+    if (!avatar && !userForm.values.newPassword && checkOldData) {
+      message.warning("Vui lòng nhập thông tin để thay đổi");
+      return;
+    }
+
+    if (userForm.validate()) {
+      if (avatar || !checkOldData) {
+        updateProfileService({
+          ...userForm.values,
+          avatar,
+        })
+          .then((res) => {
+            dispatch(setUserAction(res.data));
+            fileRef.current = null;
+            message.success("Cập nhật thông tin tài khoản thành công!");
+          })
+          .catch(handleError);
+      }
+
+      if (userForm.values.newPassword) {
+        changePasswordService({
+          newPassword: userForm.values.newPassword,
+          currentPassword: userForm.values.currentPassword,
+        })
+          .then((res) => {
+            userForm.setValues({
+              newPassword: "",
+              currentPassword: "",
+              confirmPassword: "",
+            });
+            message.success("Thay đổi mật khẩu thành công!");
+          })
+          .catch(handleError);
+      }
     }
   };
+
   return (
     <section className="pb-12 pt-7">
       <div className="container">
@@ -95,17 +187,23 @@ export default function Profile() {
           </div>
           <div className="col-12 col-md-9 col-lg-8 offset-lg-1">
             {/* Form */}
-            <form>
+            <div>
               <div className="row">
                 <div className="col-12">
-                  <div className="profile-avatar">
-                    <div className="wrap">
-                      <img src="./img/avt.png" />
-                      <i className="icon">
-                        <img src="./img/icons/icon-camera.svg" />
-                      </i>
-                    </div>
-                  </div>
+                  <UploadFile onChange={(file) => (fileRef.current = file)}>
+                    {(previewSrc, trigger) => (
+                      <div className="profile-avatar">
+                        <div className="wrap" onClick={trigger}>
+                          <img
+                            src={previewSrc || user.avatar || avatarDefault}
+                          />
+                          <i className="icon">
+                            <img src="./img/icons/icon-camera.svg" />
+                          </i>
+                        </div>
+                      </div>
+                    )}
+                  </UploadFile>
                 </div>
                 <div className="col-12">
                   {/* Email */}
@@ -134,51 +232,40 @@ export default function Profile() {
                 </div>
                 <div className="col-12 col-md-12">
                   {/* Password */}
-                  <div className="form-group">
-                    <label htmlFor="accountPassword">Current Password</label>
-                    <input
-                      className="form-control form-control-sm"
-                      id="accountPassword"
-                      type="password"
-                      placeholder="Current Password"
-                      required
-                    />
-                  </div>
+                  <Field
+                    type="password"
+                    label="Current Password"
+                    placeholder="Current Password"
+                    {...userForm.register("currentPassword")}
+                    autoComplete="new-password"
+                  />
                 </div>
                 <div className="col-12 col-md-6">
-                  <div className="form-group">
-                    <label htmlFor="AccountNewPassword">New Password</label>
-                    <input
-                      className="form-control form-control-sm"
-                      id="AccountNewPassword"
-                      type="password"
-                      placeholder="New Password"
-                      required
-                    />
-                  </div>
+                  <Field
+                    type="password"
+                    label="New Password"
+                    placeholder="New Password"
+                    {...userForm.register("newPassword")}
+                    autoComplete="new-password"
+                  />
                 </div>
                 <div className="col-12 col-md-6">
-                  <div className="form-group">
-                    <label htmlFor="AccountNewPassword">Conform Password</label>
-                    <input
-                      className="form-control form-control-sm"
-                      id="AccountNewPassword"
-                      type="password"
-                      placeholder="Conform Password"
-                      required
-                    />
-                  </div>
+                  <Field
+                    type="password"
+                    label="Confirm Password"
+                    placeholder="Confirm Password"
+                    {...userForm.register("confirmPassword")}
+                    autoComplete="new-password"
+                  />
                 </div>
                 <div className="col-12 col-lg-6">
-                  <div className="form-group">
-                    <label>Date of Birth</label>
-                    <input
-                      className="form-control form-control-sm"
-                      type="date"
-                      placeholder="dd/mm/yyyy"
-                      required
-                    />
-                  </div>
+                  <Field
+                    label="Date of Birth"
+                    {...userForm.register("birthday")}
+                    renderField={(props) => (
+                      <DatePicker className="form-control form-control-sm" />
+                    )}
+                  />
                 </div>
                 <div className="col-12 col-lg-6">
                   {/* Gender */}
@@ -201,7 +288,7 @@ export default function Profile() {
                   </Button>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       </div>
