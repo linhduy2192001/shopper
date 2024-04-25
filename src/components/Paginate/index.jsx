@@ -40,6 +40,7 @@ export default function Paginate({ totalPage }) {
   const preLink = `${pathname}?${_search.toString()}`;
   _search.set("page", currentPage + 1);
   const nextLink = `${pathname}?${_search.toString()}`;
+  if (totalPage <= 1) return null;
   return (
     <nav className="d-flex justify-content-center justify-content-md-end">
       <ul className="text-gray-400 pagination pagination-sm">

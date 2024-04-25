@@ -70,8 +70,8 @@ export default function Account() {
       try {
         const res = await registerService();
         message.success(res.message);
-      } catch (error) {
-        handleError(error);
+      } catch (err) {
+        handleError(err);
       }
     }
   };
@@ -81,8 +81,8 @@ export default function Account() {
       try {
         await dispatch(loginAction(formLogin.values)).unwrap();
         message.success("Login success");
-      } catch (error) {
-        handleError(error);
+      } catch (err) {
+        handleError(err);
       }
     }
   };

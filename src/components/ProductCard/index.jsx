@@ -1,8 +1,18 @@
 import { useCategory } from "@/hooks/useCategories";
-import { currency } from "@/utils";
+import { currency, handleError } from "@/utils";
 import Skeleton from "../Skeleton";
+import { productService } from "@/services/product.service";
+import { message } from "antd";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { PATH } from "@/config";
+import Popconfirm from "../Popconfirm";
 
 export default function ProductCard({
+  onRemoveSuccess,
+  showRemove,
+  showWishlist,
+  id,
   name,
   images,
   price,
@@ -13,9 +23,51 @@ export default function ProductCard({
   rating_average,
   discount_rate,
 }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const img1 = images?.[0]?.thumbnail_url;
   const img2 = images?.[1] ? images?.[1]?.thumbnail_url : img1;
   const category = useCategory(categories);
+
+  const onAddWishlist = async () => {
+    const key = `add-wishlist-${id}`;
+
+    try {
+      message.loading({
+        key,
+        content: `Đang thêm sản phẩm ${name} vào danh sách yêu thích`,
+        duration: 0,
+      });
+      await productService.addWishlist(id);
+      message.success({
+        key,
+        content: `Sản phẩm ${name} đã được thêm vào danh sách yêu thích thành công! `,
+      });
+    } catch (error) {
+      handleError(error, key);
+    }
+  };
+
+  const onRemovewishlist = async () => {
+    const key = `remove-wishlist-${id}`;
+
+    try {
+      message.loading({
+        key,
+        content: `Đang xoá sản phẩm ${name} vào danh sách yêu thích`,
+        duration: 0,
+      });
+      await productService.removeWishlist(id);
+      message.success({
+        key,
+        content: `Sản phẩm ${name} đã được xoá khỏi danh sách yêu thích thành công! `,
+      });
+      onRemoveSuccess?.(id);
+    } catch (error) {
+      handleError(error, key);
+    }
+  };
+
   return (
     <div className="col-6 col-md-4">
       {/* Card */}
@@ -45,14 +97,37 @@ export default function ProductCard({
                 <i className="fe fe-shopping-cart" />
               </button>
             </span>
-            <span className="card-action">
-              <button
-                className="btn btn-xs btn-circle btn-white-primary"
-                data-toggle="button"
+            {showWishlist && (
+              <Popconfirm
+                disabled={!!user}
+                title="Thông báo"
+                description="Vui lòng đăng nhập trước khi đưa sản phẩm vào yêu thích!"
+                onConfirm={() => navigate(PATH.Account)}
+                okText="Đăng nhập"
+                showCancel={true}
               >
-                <i className="fe fe-heart" />
-              </button>
-            </span>
+                <span className="card-action">
+                  <button
+                    onClick={user ? onAddWishlist : undefined}
+                    className="btn btn-xs btn-circle btn-white-primary"
+                    data-toggle="button"
+                  >
+                    <i className="fe fe-heart" />
+                  </button>
+                </span>
+              </Popconfirm>
+            )}
+            {showRemove && (
+              <span className="card-action">
+                <button
+                  onClick={onRemovewishlist}
+                  className="btn btn-xs btn-circle btn-white-primary"
+                  data-toggle="button"
+                >
+                  <i className="fe fe-x" />
+                </button>
+              </span>
+            )}
           </div>
         </div>
         {/* Body */}
