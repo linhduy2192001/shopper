@@ -39,6 +39,15 @@ export default function WishlistPage() {
       </div>
       {/* Pagination */}
       <Paginate totalPage={data?.paginate?.totalPage} />
+      <Portal selector={PROFILE_TITLE_ID}>Sản phẩm yêu thích</Portal>
+      {/* Products */}
+      <div className="row">
+        {loading
+          ? Array.from(Array(15)).map((e, i) => <ProductCardLoading key={i} />)
+          : data?.data?.map((e) => <ProductCard key={e.id} {...e} />)}
+      </div>
+      {/* Pagination */}
+      <Paginate totalPage={data?.paginate?.totalPage} />
     </>
   );
 }
